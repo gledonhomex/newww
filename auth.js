@@ -1,43 +1,76 @@
-// Simulated database of users
-const usersDatabase = [
-    { username: 'admin1', password: 'admin123', role: 'admin', kelas: '', kelompok: '', has_voted: false },
-    { username: 'voter1', password: 'voter123', role: 'voter', kelas: 'XI-1', kelompok: '', has_voted: false },
-    { username: 'idol1', password: 'idol123', role: 'idol', kelas: 'XI-1', kelompok: '1', has_voted: false }
-];
+// auth.js - Sistem Autentikasi Sederhana dan Aman
+const AUTH_KEY = 'polling_auth';
+const API_KEY = 'aodhoaidjwodjoijdiwjdad'; // Ganti dengan API key yang lebih aman
 
-// Function to authenticate user
-import { authenticateUser } from './database.js';
-
-// Function to check if user is logged in
-function isLoggedIn() {
-    return localStorage.getItem('pollingUser') !== null;
+// Simpan session user
+function setUserSession(user) {
+    const sessionData = {
+        user: user,
+        timestamp: Date.now()
+    };
+    localStorage.setItem(AUTH_KEY, JSON.stringify(sessionData));
 }
 
-// Function to get current user
+// Dapatkan user yang login
 function getCurrentUser() {
-    const userData = localStorage.getItem('pollingUser');
-    return userData ? JSON.parse(userData) : null;
+    const session = localStorage.getItem(AUTH_KEY);
+    if (!session) return null;
+    
+    const sessionData = JSON.parse(session);
+    // Cek jika session kadaluarsa (8 jam)
+    if (Date.now() - sessionData.timestamp > 28800000) {
+        logout();
+        return null;
+    }
+    return sessionData.user;
 }
 
-// Function to handle logout
-function handleLogout() {
-    localStorage.removeItem('pollingUser');
+// Cek apakah user sudah login
+function isLoggedIn() {
+    return getCurrentUser() !== null;
+}
+
+// Logout
+function logout() {
+    localStorage.removeItem(AUTH_KEY);
     window.location.href = 'index.html';
 }
 
+// Redirect berdasarkan role
+function redirectByRole() {
+    const user = getCurrentUser();
+    if (!user) return;
+    
+    const currentPage = location.pathname.split('/').pop();
+    const rolePages = {
+        'admin': 'admin.html',
+        'voter': 'voter.html',
+        'idol': 'idol.html'
+    };
+    
+    const targetPage = rolePages[user.role] || 'index.html';
+    
+    if (currentPage !== targetPage) {
+        location.href = targetPage;
+    }
+}
+
+// Validasi session di setiap halaman
+function validateSession() {
+    const publicPages = ['index.html', 'login.html'];
+    const currentPage = location.pathname.split('/').pop();
+    
+    if (!isLoggedIn() && !publicPages.includes(currentPage)) {
+        location.href = 'login.html';
+    }
+}
+
 export {
-    isLoggedIn,
+    setUserSession,
     getCurrentUser,
-    handleLogout
+    isLoggedIn,
+    logout,
+    redirectByRole,
+    validateSession,
+    API_KEY
 };
-
-// Function to check if user is logged in
-function isLoggedIn() {
-    return localStorage.getItem('pollingUser') !== null;
-}
-
-// Function to get current user
-function getCurrentUser() {
-    const userData = localStorage.getItem('pollingUser');
-    return userData ? JSON.parse(userData) : null;
-}
